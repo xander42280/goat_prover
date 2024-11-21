@@ -14,6 +14,7 @@ struct Config {
 #[derive(Deserialize)]
 struct EthereumConfig {
     rpc_url: String,
+    start_height: u64,
 }
 
 #[derive(Deserialize)]
@@ -42,10 +43,15 @@ async fn main() -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(100);
 
     let provider_clone = provider.clone();
-    let filter_target = config.filter.target_address.clone();
+    let _filter_target = config.filter.target_address.clone();
 
     tokio::spawn(async move {
-        if let Err(e) = listen_ethereum_transactions(provider_clone, filter_target, tx).await {
+        // if let Err(e) = listen_ethereum_transactions(provider_clone, filter_target, tx).await {
+        //     error!("Error while listening to Ethereum transactions: {:?}", e);
+        // }
+        if let Err(e) =
+            process_blocks_from_height(provider_clone, config.ethereum.start_height, None, tx).await
+        {
             error!("Error while listening to Ethereum transactions: {:?}", e);
         }
     });
@@ -59,6 +65,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 async fn listen_ethereum_transactions(
     provider: Arc<Provider<Http>>,
     target_address: String,
@@ -85,6 +92,45 @@ async fn listen_ethereum_transactions(
     }
 
     Ok(())
+}
+
+pub async fn process_blocks_from_height(
+    provider: Arc<Provider<Http>>,
+    start_height: u64,
+    target_address: Option<H160>,
+    tx_sender: mpsc::Sender<Transaction>,
+) -> anyhow::Result<()> {
+    let mut current_height = start_height;
+
+    loop {
+        match provider.get_block_with_txs(current_height).await {
+            Ok(Some(block)) => {
+                info!("Processing block number: {}", current_height);
+                info!("Received block with transactions: {:?}", block);
+                for tx in block.transactions {
+                    if let Some(target) = target_address {
+                        if tx.to != Some(target) {
+                            continue;
+                        }
+                    }
+                    info!("Forwarding transaction: {:?}", tx);
+                    tx_sender.send(tx).await.map_err(|e| anyhow::anyhow!(e))?;
+                }
+                current_height += 1;
+            }
+            Ok(None) => {
+                info!(
+                    "Block at height {} not found yet. Retrying...",
+                    current_height,
+                );
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            }
+            Err(e) => {
+                info!("Error fetching block at height {}: {:?}", current_height, e);
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            }
+        }
+    }
 }
 
 async fn forward_to_sidechain(

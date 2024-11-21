@@ -1,5 +1,6 @@
 [ethereum]
 rpc_url = "https://rpc.testnet.goat.network"
+start_height = 0
 
 [sidechain]
 rpc_url = "http://localhost:8545"
