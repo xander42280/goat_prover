@@ -1,6 +1,10 @@
 [workspace]
 resolver = "2"
 
+members = [
+    "tools/tx_transfer",
+]
+
 [package]
 version = "0.1.0"
 name = "goat_prover"
