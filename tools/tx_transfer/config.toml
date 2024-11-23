@@ -1,9 +1,9 @@
 [ethereum]
 rpc_url = "https://rpc.testnet.goat.network"
-start_height = 0
+start_height = 195899
 
 [sidechain]
-rpc_url = "http://localhost:8545"
+rpc_url = "http://localhost:12345"
 
 [filter]
 target_address = "0x1234567890abcdef1234567890abcdef12345678"

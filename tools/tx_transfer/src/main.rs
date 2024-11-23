@@ -1,4 +1,5 @@
 use ethers::prelude::*;
+use k256::pkcs8::der::Encode;
 use log::{error, info};
 use serde::Deserialize;
 use std::{fs, sync::Arc};
@@ -9,6 +10,7 @@ struct Config {
     ethereum: EthereumConfig,
     sidechain: SidechainConfig,
     filter: FilterConfig,
+    daconfig: da_service::DaServiceConfig,
 }
 
 #[derive(Deserialize)]
@@ -27,6 +29,8 @@ struct FilterConfig {
     target_address: String,
 }
 
+pub mod da_service;
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
@@ -38,7 +42,9 @@ async fn main() -> anyhow::Result<()> {
     let provider = Arc::new(provider);
 
     let sidechain_provider = Provider::<Http>::try_from(config.sidechain.rpc_url.clone())?;
-    let sidechain_provider = Arc::new(sidechain_provider);
+    let _sidechain_provider = Arc::new(sidechain_provider);
+
+    let da_service = da_service::CelestiaService::new(config.daconfig).await;
 
     let (tx, mut rx) = mpsc::channel(100);
 
@@ -57,7 +63,10 @@ async fn main() -> anyhow::Result<()> {
     });
 
     while let Some(transaction) = rx.recv().await {
-        if let Err(e) = forward_to_sidechain(sidechain_provider.clone(), transaction).await {
+        // if let Err(e) = forward_to_sidechain(sidechain_provider.clone(), transaction).await {
+        //     error!("Error while forwarding transaction: {:?}", e);
+        // }
+        if let Err(e) = forward_to_da(da_service.clone(), transaction).await {
             error!("Error while forwarding transaction: {:?}", e);
         }
     }
@@ -94,6 +103,7 @@ async fn listen_ethereum_transactions(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub async fn process_blocks_from_height(
     provider: Arc<Provider<Http>>,
     start_height: u64,
@@ -105,8 +115,11 @@ pub async fn process_blocks_from_height(
     loop {
         match provider.get_block_with_txs(current_height).await {
             Ok(Some(block)) => {
-                info!("Processing block number: {}", current_height);
-                info!("Received block with transactions: {:?}", block);
+                info!(
+                    "Processing block number: {} txs: {}",
+                    current_height,
+                    block.transactions.len(),
+                );
                 for tx in block.transactions {
                     if let Some(target) = target_address {
                         if tx.to != Some(target) {
@@ -133,16 +146,43 @@ pub async fn process_blocks_from_height(
     }
 }
 
+#[allow(dead_code)]
 async fn forward_to_sidechain(
     provider: Arc<Provider<Http>>,
     transaction: Transaction,
 ) -> anyhow::Result<()> {
     let tx_request = TransactionRequest::new()
+        .from(transaction.from)
         .to(transaction.to.unwrap())
         .value(transaction.value)
-        .data(transaction.input);
+        .data(transaction.input)
+        .gas(21000)
+        .gas_price(1_000_000_000u64);
 
     let pending_tx = provider.send_transaction(tx_request, None).await?;
+    info!("Forwarded transaction with hash: {:?}", pending_tx);
+
+    Ok(())
+}
+
+#[allow(dead_code)]
+async fn forward_to_da(
+    provider: da_service::CelestiaService,
+    transaction: Transaction,
+) -> anyhow::Result<()> {
+    // let tx_request = TransactionRequest::new()
+    //     .from(transaction.from)
+    //     .to(transaction.to.unwrap())
+    //     .value(transaction.value)
+    //     .data(transaction.input)
+    //     .gas(21000)
+    //     .gas_price(1_000_000_000u64);
+
+    let block_json = serde_json::to_string(&transaction)?;
+    let pending_tx = provider
+        .send_transaction(block_json.as_bytes())
+        .await
+        .unwrap();
     info!("Forwarded transaction with hash: {:?}", pending_tx);
 
     Ok(())

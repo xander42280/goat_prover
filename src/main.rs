@@ -78,11 +78,21 @@ async fn generate_json_file(
     dir: &str,
 ) -> anyhow::Result<String> {
     let json_string = executor::process(client, block_no, chain_id).await?;
-    let mut buf = Vec::new();
-    bincode::serialize_into(&mut buf, &json_string)?;
-    let suite_json_path = format!("{}/{}.json", dir, block_no);
-    std::fs::write(suite_json_path.clone(), buf)?;
-    Ok(suite_json_path)
+    // only execute the block if has transactions
+    let test_unit = serde_json::from_str::<models::TestUnit>(&json_string)?;
+    if test_unit.env.parent_blob_gas_used.is_some()
+        && test_unit.env.parent_blob_gas_used.unwrap() > revm::primitives::U256::ZERO
+        && test_unit.env.parent_excess_blob_gas.is_some()
+        && test_unit.env.parent_excess_blob_gas.unwrap() > revm::primitives::U256::ZERO
+    {
+        let mut buf = Vec::new();
+        bincode::serialize_into(&mut buf, &json_string)?;
+        let suite_json_path = format!("{}/{}.json", dir, block_no);
+        std::fs::write(suite_json_path.clone(), buf)?;
+        Ok(suite_json_path)
+    } else {
+        Ok("".to_string())
+    }
 }
 
 #[tokio::main]
@@ -116,20 +126,24 @@ async fn main() -> anyhow::Result<()> {
                     "Generating json file for block_no: {} is successful",
                     block_no
                 );
-                prove(
-                    &json_file_path,
-                    &elf_path,
-                    seg_size,
-                    execute_only,
-                    &output_dir,
-                    block_no,
-                )
-                .await;
+                if json_file_path.is_empty() {
+                    log::info!("Block_no: {} has no transactions", block_no);
+                } else {
+                    prove(
+                        &json_file_path,
+                        &elf_path,
+                        seg_size,
+                        execute_only,
+                        &output_dir,
+                        block_no,
+                    )
+                    .await;
+                }
                 block_no += 1;
             }
             Err(e) => {
-                log::info!("Generating json file for block_no: {} is failed", block_no);
-                log::info!("Error: {}", e);
+                log::error!("Generating json file for block_no: {} is failed", block_no);
+                log::error!("Error: {}", e);
                 tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
                 continue;
             }
