@@ -2391,7 +2391,7 @@ checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
 [[package]]
 name = "executor"
 version = "0.1.0"
-source = "git+https://github.com/zkMIPS/revme?branch=main#9af0fbe6bb8ae57704249b715b2730240424175d"
+source = "git+https://github.com/zkMIPS/revme?branch=feat/goat#8d01d57a1a56e5ebfcce574fb02773bacfb4d6cf"
 dependencies = [
  "alloy-rlp",
  "anyhow",
@@ -3614,7 +3614,7 @@ dependencies = [
 [[package]]
 name = "models"
 version = "0.1.0"
-source = "git+https://github.com/zkMIPS/revme?branch=main#9af0fbe6bb8ae57704249b715b2730240424175d"
+source = "git+https://github.com/zkMIPS/revme?branch=feat/goat#8d01d57a1a56e5ebfcce574fb02773bacfb4d6cf"
 dependencies = [
  "revm",
  "serde",
@@ -6915,7 +6915,7 @@ dependencies = [
 [[package]]
 name = "zkm-emulator"
 version = "0.1.0"
-source = "git+https://github.com/zkMIPS/zkm?branch=main#1122bb7626641cb7b84d532af3c1babf3ee61c0e"
+source = "git+https://github.com/zkMIPS/zkm.git?branch=main#7cd2e696a3bf19a1e49db2d706a30c4d990a2c8f"
 dependencies = [
  "bincode",
  "byteorder",
@@ -6932,7 +6932,7 @@ dependencies = [
 [[package]]
 name = "zkm-prover"
 version = "0.1.0"
-source = "git+https://github.com/zkMIPS/zkm?branch=main#1122bb7626641cb7b84d532af3c1babf3ee61c0e"
+source = "git+https://github.com/zkMIPS/zkm.git?branch=main#7cd2e696a3bf19a1e49db2d706a30c4d990a2c8f"
 dependencies = [
  "anyhow",
  "bincode",
@@ -6953,6 +6953,7 @@ dependencies = [
  "rand_chacha",
  "serde",
  "serde_json",
+ "sha2 0.10.8",
  "static_assertions",
  "tiny-keccak",
  "zkm-emulator",
