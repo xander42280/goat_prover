@@ -80,10 +80,7 @@ async fn generate_json_file(
     let json_string = executor::process(client, block_no, chain_id).await?;
     // only execute the block if has transactions
     let test_unit = serde_json::from_str::<models::TestUnit>(&json_string)?;
-    if test_unit.env.parent_blob_gas_used.is_some()
-        && test_unit.env.parent_blob_gas_used.unwrap() > revm::primitives::U256::ZERO
-        && test_unit.env.parent_excess_blob_gas.is_some()
-        && test_unit.env.parent_excess_blob_gas.unwrap() > revm::primitives::U256::ZERO
+    if !test_unit.pre.is_empty() || !test_unit.post.is_empty()
     {
         let mut buf = Vec::new();
         bincode::serialize_into(&mut buf, &json_string)?;
