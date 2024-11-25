@@ -6962,7 +6962,6 @@ dependencies = [
 [[package]]
 name = "zkm-sdk"
 version = "0.1.0"
-source = "git+https://github.com/zkMIPS/zkm-project-template?branch=main#db996f84b4e83e9b1b0c83dbaad8e6cc5324754d"
 dependencies = [
  "anyhow",
  "async-trait",

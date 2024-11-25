@@ -40,3 +40,6 @@ env_logger = "0.10"
 #[patch."https://github.com/zkMIPS/revme"]
 #models = {path="../../zkMIPS/revme/models"}
 #executor = {path="../../zkMIPS/revme/executor"}
+
+[patch."https://github.com/zkMIPS/zkm-project-template"]
+zkm-sdk = {path="../zkm-project-template/sdk"}

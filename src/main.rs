@@ -126,15 +126,15 @@ async fn main() -> anyhow::Result<()> {
                 if json_file_path.is_empty() {
                     log::info!("Block_no: {} has no transactions", block_no);
                 } else {
-                    // prove(
-                    //     &json_file_path,
-                    //     &elf_path,
-                    //     seg_size,
-                    //     execute_only,
-                    //     &output_dir,
-                    //     block_no,
-                    // )
-                    // .await;
+                    prove(
+                        &json_file_path,
+                        &elf_path,
+                        seg_size,
+                        execute_only,
+                        &output_dir,
+                        block_no,
+                    )
+                    .await;
                 }
                 block_no += 1;
             }
