@@ -1,5 +1,6 @@
 use common::file;
 use ethers_providers::{Http, Provider};
+use models::TestUnit;
 use std::env;
 use std::fs::read;
 use std::path::Path;
@@ -76,19 +77,18 @@ async fn generate_json_file(
     block_no: u64,
     chain_id: u64,
     dir: &str,
-) -> anyhow::Result<String> {
+) -> anyhow::Result<(String, TestUnit)> {
     let json_string = executor::process(client, block_no, chain_id).await?;
     // only execute the block if has transactions
     let test_unit = serde_json::from_str::<models::TestUnit>(&json_string)?;
-    if !test_unit.pre.is_empty() || !test_unit.post.is_empty()
-    {
+    if !test_unit.pre.is_empty() || !test_unit.post.is_empty() {
         let mut buf = Vec::new();
         bincode::serialize_into(&mut buf, &json_string)?;
         let suite_json_path = format!("{}/{}.json", dir, block_no);
         std::fs::write(suite_json_path.clone(), buf)?;
-        Ok(suite_json_path)
+        Ok((suite_json_path, test_unit))
     } else {
-        Ok("".to_string())
+        Ok(("".to_string(), test_unit))
     }
 }
 
@@ -110,15 +110,15 @@ async fn main() -> anyhow::Result<()> {
     let client = Arc::new(client);
 
     loop {
-        let json_file_path = generate_json_file(
+        let ret = generate_json_file(
             client.clone(),
             block_no,
             chain_id.parse().unwrap(),
             &output_dir,
         )
         .await;
-        match json_file_path {
-            Ok(json_file_path) => {
+        match ret {
+            Ok((json_file_path, test_unit)) => {
                 log::info!(
                     "Generating json file for block_no: {} is successful",
                     block_no
@@ -126,6 +126,7 @@ async fn main() -> anyhow::Result<()> {
                 if json_file_path.is_empty() {
                     log::info!("Block_no: {} has no transactions", block_no);
                 } else {
+                    let start_time = Instant::now();
                     prove(
                         &json_file_path,
                         &elf_path,
@@ -135,6 +136,13 @@ async fn main() -> anyhow::Result<()> {
                         block_no,
                     )
                     .await;
+                    let end_time = Instant::now();
+                    log::info!(
+                        "Elapsed time: {};{};{}",
+                        block_no,
+                        test_unit.env.parent_blob_gas_used.unwrap_or_default(),
+                        end_time.duration_since(start_time).as_secs(),
+                    );
                 }
                 block_no += 1;
             }
