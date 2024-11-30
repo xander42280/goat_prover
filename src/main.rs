@@ -139,6 +139,8 @@ async fn main() -> anyhow::Result<()> {
     let elf_path = env::var("ELF_PATH").expect("ELF PATH is missed");
     let endpoint = env::var("ENDPOINT").ok();
     let ca_cert_path = env::var("CA_CERT_PATH").ok();
+    let cert_path = env::var("CERT_PATH").ok();
+    let key_path = env::var("KEY_PATH").ok();
     let domain_name = env::var("DOMAIN_NAME").ok();
     let private_key = env::var("PRIVATE_KEY").ok();
 
@@ -150,8 +152,8 @@ async fn main() -> anyhow::Result<()> {
         vk_path: env::var("VK_PATH").unwrap_or(String::from("")),
         endpoint,
         ca_cert_path,
-        cert_path: None,
-        key_path: None,
+        cert_path,
+        key_path,
         domain_name,
         private_key,
     };
