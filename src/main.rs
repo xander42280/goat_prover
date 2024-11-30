@@ -6,11 +6,12 @@ use std::fs::read;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Instant;
-use zkm_sdk::{prover::ProverInput, ProverClient};
+use zkm_sdk::{prover::ClientCfg, prover::ProverInput, ProverClient};
 
 mod check;
 
 async fn prove(
+    cfg: &ClientCfg,
     json_path: &str,
     elf_path: &str,
     seg_size: u32,
@@ -19,13 +20,13 @@ async fn prove(
     block_no: u64,
 ) {
     log::info!("Start prove block! block_no:{}", block_no);
-    let prover_client = ProverClient::new().await;
+    let prover_client = ProverClient::new(cfg).await;
     let input = ProverInput {
         elf: read(elf_path).unwrap(),
         public_inputstream: read(json_path).unwrap(),
+        private_inputstream: vec![],
         seg_size,
         execute_only,
-        ..Default::default()
     };
 
     let start = Instant::now();
@@ -74,6 +75,7 @@ async fn prove(
 }
 
 async fn prove_tx(
+    cfg: &ClientCfg,
     outdir: &str,
     elf_path: &str,
     seg_size: u32,
@@ -94,6 +96,7 @@ async fn prove_tx(
         }
     } else {
         prove(
+            cfg,
             &suite_json_path,
             elf_path,
             seg_size,
@@ -134,9 +137,24 @@ async fn main() -> anyhow::Result<()> {
     let execute_only = env::var("EXECUTE_ONLY").unwrap_or("false".to_string());
     let execute_only = execute_only.parse::<bool>().unwrap_or(false);
     let elf_path = env::var("ELF_PATH").expect("ELF PATH is missed");
+    let endpoint = env::var("ENDPOINT").ok();
+    let ca_cert_path = env::var("CA_CERT_PATH").ok();
+    let domain_name = env::var("DOMAIN_NAME").ok();
+    let private_key = env::var("PRIVATE_KEY").ok();
 
     let client = Provider::<Http>::try_from(rpc_url).unwrap();
     let client = Arc::new(client);
+
+    let prover_cfg = ClientCfg {
+        zkm_prover: env::var("ZKM_PROVER").unwrap_or(String::from("network")),
+        vk_path: env::var("VK_PATH").unwrap_or(String::from("")),
+        endpoint,
+        ca_cert_path,
+        cert_path: None,
+        key_path: None,
+        domain_name,
+        private_key,
+    };
 
     loop {
         let test_suite =
@@ -151,6 +169,7 @@ async fn main() -> anyhow::Result<()> {
 
                 if !items.0.is_empty() {
                     prove_tx(
+                        &prover_cfg,
                         &output_dir,
                         &elf_path,
                         seg_size,

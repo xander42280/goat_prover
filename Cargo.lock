@@ -3447,16 +3447,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "keccak-hash"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b286e6b663fb926e1eeb68528e69cb70ed46c6d65871a21b2215ae8154c6d3c"
-dependencies = [
- "primitive-types 0.12.2",
- "tiny-keccak",
-]
-
-[[package]]
 name = "kzg-rs"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4225,7 +4215,7 @@ dependencies = [
  "getrandom",
  "hashbrown 0.14.3",
  "itertools 0.11.0",
- "keccak-hash 0.8.0",
+ "keccak-hash",
  "log",
  "num",
  "plonky2_field",
@@ -6965,34 +6955,18 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bincode",
- "byteorder",
  "common",
  "elf",
- "env_logger 0.10.2",
  "ethers",
- "hashbrown 0.14.3",
- "hex",
- "itertools 0.11.0",
- "keccak-hash 0.10.0",
- "lazy_static",
  "libc",
  "log",
- "num",
- "num-bigint 0.4.6",
- "once_cell",
  "plonky2",
- "plonky2_maybe_rayon",
- "plonky2_util",
  "plonky2x",
- "plonky2x-derive",
  "prost 0.11.9",
- "rand",
- "rand_chacha",
  "reqwest",
  "serde",
  "serde_json",
- "static_assertions",
- "tiny-keccak",
+ "sha2 0.10.8",
  "tokio",
  "tonic",
  "tonic-build",
