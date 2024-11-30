@@ -23,10 +23,9 @@ async fn prove(
     let input = ProverInput {
         elf: read(elf_path).unwrap(),
         public_inputstream: read(json_path).unwrap(),
-        private_inputstream: "".into(),
         seg_size,
         execute_only,
-        args: "".into(),
+        ..Default::default()
     };
 
     let start = Instant::now();
