@@ -1,12 +1,14 @@
 use common::file;
 use ethers_providers::{Http, Provider};
-use models::TestUnit;
+use models::TestSuite;
 use std::env;
 use std::fs::read;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Instant;
 use zkm_sdk::{prover::ProverInput, ProverClient};
+
+mod check;
 
 async fn prove(
     json_path: &str,
@@ -72,24 +74,52 @@ async fn prove(
     );
 }
 
-async fn generate_json_file(
-    client: Arc<Provider<Http>>,
+async fn prove_tx(
+    outdir: &str,
+    elf_path: &str,
+    seg_size: u32,
+    execute_only: bool,
+    test_suite: &TestSuite,
     block_no: u64,
-    chain_id: u64,
-    dir: &str,
-) -> anyhow::Result<(String, TestUnit)> {
-    let json_string = executor::process(client, block_no, chain_id).await?;
-    // only execute the block if has transactions
-    let test_unit = serde_json::from_str::<models::TestUnit>(&json_string)?;
-    if !test_unit.pre.is_empty() || !test_unit.post.is_empty() {
-        let mut buf = Vec::new();
-        bincode::serialize_into(&mut buf, &json_string)?;
-        let suite_json_path = format!("{}/{}.json", dir, block_no);
-        std::fs::write(suite_json_path.clone(), buf)?;
-        Ok((suite_json_path, test_unit))
+) -> anyhow::Result<()> {
+    let json_string = serde_json::to_string(&test_suite).expect("Failed to serialize");
+    log::debug!("test_suite: {}", json_string);
+    let mut buf = Vec::new();
+    bincode::serialize_into(&mut buf, &json_string).expect("serialization failed");
+    let suite_json_path = format!("{}/{}.json", outdir, block_no);
+    std::fs::write(suite_json_path.clone(), buf)?;
+    let start_time = Instant::now();
+    if execute_only {
+        for test_unit in test_suite.0.iter() {
+            crate::check::execute_test_unit(test_unit.1).unwrap();
+        }
     } else {
-        Ok(("".to_string(), test_unit))
+        prove(
+            &suite_json_path,
+            elf_path,
+            seg_size,
+            execute_only,
+            outdir,
+            block_no,
+        )
+        .await;
+        let end_time = Instant::now();
+        log::info!(
+            "Elapsed time: {};{};{};{}",
+            block_no,
+            test_suite.0.len(),
+            test_suite
+                .0
+                .first_key_value()
+                .unwrap()
+                .1
+                .env
+                .parent_blob_gas_used
+                .unwrap_or_default(),
+            end_time.duration_since(start_time).as_secs(),
+        );
     }
+    Ok(())
 }
 
 #[tokio::main]
@@ -110,39 +140,26 @@ async fn main() -> anyhow::Result<()> {
     let client = Arc::new(client);
 
     loop {
-        let ret = generate_json_file(
-            client.clone(),
-            block_no,
-            chain_id.parse().unwrap(),
-            &output_dir,
-        )
-        .await;
-        match ret {
-            Ok((json_file_path, test_unit)) => {
+        let test_suite =
+            executor::process(client.clone(), block_no, chain_id.parse().unwrap()).await;
+        match test_suite {
+            anyhow::Result::Ok(items) => {
                 log::info!(
-                    "Generating json file for block_no: {} is successful",
-                    block_no
+                    "Generating json file for block_no: {} is successful, txs: {}",
+                    block_no,
+                    items.0.len(),
                 );
-                if json_file_path.is_empty() {
-                    log::info!("Block_no: {} has no transactions", block_no);
-                } else {
-                    let start_time = Instant::now();
-                    prove(
-                        &json_file_path,
+
+                if !items.0.is_empty() {
+                    prove_tx(
+                        &output_dir,
                         &elf_path,
                         seg_size,
                         execute_only,
-                        &output_dir,
+                        &items,
                         block_no,
                     )
-                    .await;
-                    let end_time = Instant::now();
-                    log::info!(
-                        "Elapsed time: {};{};{}",
-                        block_no,
-                        test_unit.env.parent_blob_gas_used.unwrap_or_default(),
-                        end_time.duration_since(start_time).as_secs(),
-                    );
+                    .await?;
                 }
                 block_no += 1;
             }

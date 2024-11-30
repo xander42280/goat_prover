@@ -2391,7 +2391,6 @@ checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
 [[package]]
 name = "executor"
 version = "0.1.0"
-source = "git+https://github.com/zkMIPS/revme?branch=feat/goat#8d01d57a1a56e5ebfcce574fb02773bacfb4d6cf"
 dependencies = [
  "alloy-rlp",
  "anyhow",
@@ -2767,6 +2766,7 @@ dependencies = [
  "hash-db",
  "hex",
  "indicatif",
+ "k256",
  "log",
  "models",
  "plain_hasher",
@@ -3614,7 +3614,6 @@ dependencies = [
 [[package]]
 name = "models"
 version = "0.1.0"
-source = "git+https://github.com/zkMIPS/revme?branch=feat/goat#8d01d57a1a56e5ebfcce574fb02773bacfb4d6cf"
 dependencies = [
  "revm",
  "serde",

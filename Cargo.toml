@@ -36,10 +36,12 @@ plain_hasher = "0.2"
 hash-db = "0.15"
 log = "0.4.0"
 env_logger = "0.10"
+k256 = { version = "0.13.3", features = ["ecdsa"], default-features = false }
 
-#[patch."https://github.com/zkMIPS/revme"]
-#models = {path="../../zkMIPS/revme/models"}
-#executor = {path="../../zkMIPS/revme/executor"}
+
+[patch."https://github.com/zkMIPS/revme"]
+models = {path="../../zkMIPS/revme/models"}
+executor = {path="../../zkMIPS/revme/executor"}
 
 [patch."https://github.com/zkMIPS/zkm-project-template"]
 zkm-sdk = {path="../zkm-project-template/sdk"}
