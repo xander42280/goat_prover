@@ -143,6 +143,8 @@ async fn main() -> anyhow::Result<()> {
     let key_path = env::var("KEY_PATH").ok();
     let domain_name = env::var("DOMAIN_NAME").ok();
     let private_key = env::var("PRIVATE_KEY").ok();
+    let prove_loop = env::var("PROVE_LOOP").unwrap_or("false".to_string());
+    let prove_loop = prove_loop.parse::<bool>().unwrap_or(false);
 
     let client = Provider::<Http>::try_from(rpc_url).unwrap();
     let client = Arc::new(client);
@@ -187,8 +189,12 @@ async fn main() -> anyhow::Result<()> {
                 log::error!("Generating json file for block_no: {} is failed", block_no);
                 log::error!("Error: {}", e);
                 tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-                continue;
             }
         }
+
+        if !prove_loop {
+            break;
+        }
     }
+    Ok(())
 }
