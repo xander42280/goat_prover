@@ -7,6 +7,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Instant;
 use zkm_sdk::{prover::ClientCfg, prover::ProverInput, ProverClient};
+use bincode::{serialize, deserialize, Error};
 
 mod check;
 
@@ -83,10 +84,11 @@ async fn prove_tx(
     test_suite: &TestSuite,
     block_no: u64,
 ) -> anyhow::Result<()> {
-    let json_string = serde_json::to_string(&test_suite).expect("Failed to serialize");
-    log::debug!("test_suite: {}", json_string);
     let mut buf = Vec::new();
-    bincode::serialize_into(&mut buf, &json_string).expect("serialization failed");
+    // let json_string = serde_json::to_string(&test_suite).expect("Failed to serialize");
+    // log::debug!("test_suite: {}", json_string);
+    // bincode::serialize_into(&mut buf, &json_string).expect("serialization failed");
+    bincode::serialize_into(&mut buf, &test_suite).expect("serialization failed");
     let suite_json_path = format!("{}/{}.json", outdir, block_no);
     std::fs::write(suite_json_path.clone(), buf)?;
     let start_time = Instant::now();
